@@ -280,6 +280,36 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               }
             });
           }
+        } else {
+          // No saved participant: treat as audience client
+          try {
+            newSocket.emit('audience_join');
+          } catch { /* ignore */ }
+          // Try to fetch the current active question for audience (server optional support)
+          const handleCurrent = (resp: any) => {
+            try {
+              const q = resp?.question ?? resp?.currentQuestion ?? resp ?? null;
+              const norm = normalizeQuestion(q);
+              if (norm && norm.id) {
+                activeQuestionIdRef.current = norm.id;
+                lastQuestionEventTypeRef.current = 'resume';
+                setCurrentQuestion(norm);
+                setQuestionLeaderboard([]);
+              }
+            } catch { /* ignore */ }
+          };
+          try {
+            newSocket.timeout(2000).emit('audience_get_question', undefined, (...args: any[]) => {
+              const resp = args.length === 1 ? args[0] : args[1] ?? args[0];
+              handleCurrent(resp);
+            });
+          } catch { /* ignore */ }
+          try {
+            newSocket.timeout(2000).emit('get_current_question', undefined, (...args: any[]) => {
+              const resp = args.length === 1 ? args[0] : args[1] ?? args[0];
+              handleCurrent(resp);
+            });
+          } catch { /* ignore */ }
         }
       } catch (err) {
         // ignore parse errors
@@ -331,6 +361,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (saved && (saved.name || saved.phone)) {
             newSocket.emit('join_quiz', { name: saved.name, phone: saved.phone });
           }
+        } else {
+          // audience client: rejoin the session room
+          try { newSocket.emit('audience_join'); } catch { /* ignore */ }
         }
       } catch (err) {
         // ignore

@@ -25,6 +25,19 @@ function AppContent() {
   } = useSocket();
 
   useEffect(() => {
+    const path = window.location.pathname;
+    // handle both root-hosted and base-hosted deployments (Vite's BASE_URL)
+    const base = (import.meta.env.BASE_URL as string) ?? '/';
+    const adminPath = base.endsWith('/') ? `${base}admin`.replace('//', '/') : `${base}/admin`;
+    const audiencePath = base.endsWith('/') ? `${base}audience`.replace('//', '/') : `${base}/audience`;
+
+    // If audience route, short-circuit: set sentinel and skip auth/role logic
+    if (path === '/audience' || path === audiencePath || path.endsWith('/audience')) {
+      (window as any).__showAudience = true;
+      if (role !== null) setRole(null);
+      return;
+    }
+
     const savedParticipant = localStorage.getItem('participant');
     if (savedParticipant && !role) {
       setRole('player');
@@ -37,21 +50,10 @@ function AppContent() {
       connectAsAdmin(adminToken);
     }
 
-    const path = window.location.pathname;
-    // handle both root-hosted and base-hosted deployments (Vite's BASE_URL)
-    const base = (import.meta.env.BASE_URL as string) ?? '/';
-    const adminPath = base.endsWith('/') ? `${base}admin`.replace('//', '/') : `${base}/admin`;
-    const audiencePath = base.endsWith('/') ? `${base}audience`.replace('//', '/') : `${base}/audience`;
     if (!role && (path === '/admin' || path === adminPath || path.endsWith('/admin'))) {
       setRole('admin');
     }
-    // Simple route: /audience shows the audience display regardless of role
-    if (path === '/audience' || path === audiencePath || path.endsWith('/audience')) {
-      // Use a sentinel role to short-circuit into AudienceDisplay render below
-      setRole(null);
-      (window as any).__showAudience = true;
-    }
-  }, [role, connectAsAdmin]);
+  }, []);
 
   // Route shortcut for audience view
   if ((window as any).__showAudience) {
