@@ -1,5 +1,5 @@
-import React from 'react';
-import { Trophy, Medal, Award } from 'lucide-react';
+import React from "react";
+import { Trophy, Medal, Award } from "lucide-react";
 
 interface LeaderboardEntry {
   // keep old shape but allow optional for defensive rendering
@@ -18,6 +18,10 @@ interface LeaderboardEntry {
   isCorrect?: boolean;
   correctAnswersCount?: number;
   accuracyPercent?: number;
+  correctAnswer?: {
+    key: string;
+    text: string;
+  } | null;
 }
 
 interface LeaderboardViewProps {
@@ -31,7 +35,6 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   entries,
   title,
   isGameLeaderboard = false,
-  
 }) => {
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -53,16 +56,17 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const getRankBgColor = (rank: number) => {
     switch (rank) {
       case 1:
-        return 'bg-gradient-to-r from-yellow-900/40 to-yellow-800/40 border-yellow-500/50';
+        return "bg-gradient-to-r from-yellow-900/40 to-yellow-800/40 border-yellow-500/50";
       case 2:
-        return 'bg-gradient-to-r from-gray-800/40 to-gray-700/40 border-gray-500/50';
+        return "bg-gradient-to-r from-gray-800/40 to-gray-700/40 border-gray-500/50";
       case 3:
-        return 'bg-gradient-to-r from-amber-900/40 to-amber-800/40 border-amber-600/50';
+        return "bg-gradient-to-r from-amber-900/40 to-amber-800/40 border-amber-600/50";
       default:
-        return 'bg-gray-800/40 border-gray-700/50';
+        return "bg-gray-800/40 border-gray-700/50";
     }
   };
-
+  const correctAnswer =
+    entries?.find((e) => e.correctAnswer)?.correctAnswer ?? null;
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
@@ -79,9 +83,16 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             <h1 className="text-3xl md:text-4xl font-bold text-[#31b1d8] mb-2">
               {title}
             </h1>
-            <p className="text-gray-400">
-              {isGameLeaderboard ? 'Final Rankings' : 'Current Results'}
-            </p>
+
+            {/* 🟩 Show correct answer once (only for question leaderboard) */}
+            {!isGameLeaderboard && correctAnswer && (
+              <div className="mt-4 text-lg text-green-400 font-semibold">
+                ✅ Correct Answer:{" "}
+                <span className="text-white">
+                  {correctAnswer.key} — {correctAnswer.text}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -92,17 +103,17 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             {entries.map((entry, idx) => {
               // normalize values and provide safe defaults
               const rank = entry.rank ?? null;
-              const displayRank = rank === null ? '—' : rank;
-              const name = entry.participant?.name ?? entry.name ?? 'Anonymous';
+              const displayRank = rank === null ? "—" : rank;
+              const name = entry.participant?.name ?? entry.name ?? "Anonymous";
               // score is available but not shown in the current UI; keep rendering minimal
 
               const formatTime = (iso?: string) => {
-                if (!iso) return '';
+                if (!iso) return "";
                 const d = new Date(iso);
                 const hours = d.getHours();
-                const mm = String(d.getMinutes()).padStart(2, '0');
-                const ss = String(d.getSeconds()).padStart(2, '0');
-                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const mm = String(d.getMinutes()).padStart(2, "0");
+                const ss = String(d.getSeconds()).padStart(2, "0");
+                const ampm = hours >= 12 ? "PM" : "AM";
                 const hour12 = hours % 12 === 0 ? 12 : hours % 12;
                 return `${hour12}:${mm}:${ss} ${ampm}`;
               };
@@ -112,16 +123,24 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
 
               return (
                 <div
-                  key={entry.name ?? entry.participant?.name ?? `${displayRank}-${idx}`}
+                  key={
+                    entry.name ??
+                    entry.participant?.name ??
+                    `${displayRank}-${idx}`
+                  }
                   className={`
                     flex items-center justify-between p-4 md:p-5 rounded-lg border transition-all duration-200
-                    ${getRankBgColor(typeof rank === 'number' ? rank : 999)}
-                    ${typeof rank === 'number' && rank <= 3 ? 'transform hover:scale-105' : ''}
+                    ${getRankBgColor(typeof rank === "number" ? rank : 999)}
+                    ${
+                      typeof rank === "number" && rank <= 3
+                        ? "transform hover:scale-105"
+                        : ""
+                    }
                   `}
                 >
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
                     <div className="flex-shrink-0">
-                      {getRankIcon(typeof rank === 'number' ? rank : 999)}
+                      {getRankIcon(typeof rank === "number" ? rank : 999)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-semibold text-lg truncate">
@@ -129,31 +148,33 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                       </p>
                       {isGameLeaderboard && (
                         <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-400">
-                          <span>
-                            {entry.correctAnswersCount ?? 0} correct
-                          </span>
+                          <span>{entry.correctAnswersCount ?? 0} correct</span>
                           <span>
                             {(entry.accuracyPercent ?? 0).toFixed(1)}% accuracy
                           </span>
                         </div>
                       )}
                       {!isGameLeaderboard && timeText && (
-                        <div className="mt-1 text-sm text-gray-400">{timeText}</div>
+                        <div className="mt-1 text-sm text-gray-400">
+                          {timeText}
+                        </div>
                       )}
                     </div>
                   </div>
-
-                  
 
                   {!isGameLeaderboard && isCorrect !== undefined && (
                     <div className="ml-4 flex-shrink-0">
                       {isCorrect ? (
                         <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">✓</span>
+                          <span className="text-white text-xs font-bold">
+                            ✓
+                          </span>
                         </div>
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">✕</span>
+                          <span className="text-white text-xs font-bold">
+                            ✕
+                          </span>
                         </div>
                       )}
                     </div>
